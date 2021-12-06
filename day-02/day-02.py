@@ -1,21 +1,22 @@
 import sys
+import dataclasses
 from enum import Enum
-from dataclasses import dataclass
-from typing import List
+from typing import Callable, List
 
 Direction = Enum("Direction", "UP FORWARD DOWN")
 
 
-@dataclass
+@dataclasses.dataclass
 class Instruction:
     direction: Direction
     amount: int
 
 
-@dataclass
+@dataclasses.dataclass
 class Position:
-    x: int
-    y: int
+    x: int = 0
+    y: int = 0
+    aim: int = 0
 
 
 def parse_line(line: str) -> Instruction:
@@ -39,34 +40,51 @@ def read_file(filename: str) -> List[str]:
         return lines
 
 
-def evaluate_instruction(curr_position: Position, instruction: Instruction) -> Position:
-    if instruction.direction == Direction.DOWN:
-        return Position(curr_position.x, curr_position.y + instruction.amount)
-    elif instruction.direction == Direction.FORWARD:
-        return Position(curr_position.x + instruction.amount, curr_position.y)
-    elif instruction.direction == Direction.UP:
-        return Position(curr_position.x, curr_position.y - instruction.amount)
+def eval_instruction_p1(pos: Position, instruction: Instruction) -> Position:
+    dir, amount = dataclasses.astuple(instruction)
+    if dir == Direction.DOWN:
+        return Position(pos.x, pos.y + amount)
+    elif dir == Direction.UP:
+        return Position(pos.x, pos.y - amount)
+    elif dir == Direction.FORWARD:
+        return Position(pos.x + amount, pos.y)
 
 
-def evaluate_instructions(instructions: List[Instruction]) -> Position:
-    position = Position(0, 0)
+def eval_instruction_p2(pos: Position, instruction: Instruction) -> Position:
+    dir, amount = dataclasses.astuple(instruction)
+    if dir == Direction.DOWN:
+        return Position(pos.x, pos.y, pos.aim + amount)
+    elif dir == Direction.UP:
+        return Position(pos.x, pos.y, pos.aim - amount)
+    elif dir == Direction.FORWARD:
+        return Position(pos.x + amount, pos.y + pos.aim * amount, pos.aim)
+
+
+def eval(
+    fn: Callable[[Position, Instruction], Position], instructions: List[Instruction]
+) -> Position:
+    position = Position()
     for instruction in instructions:
-        position = evaluate_instruction(position, instruction)
+        position = fn(position, instruction)
     return position
 
 
-def part_1(instructions: List[Instruction]) -> int:
-    final_position = evaluate_instructions(instructions)
-    return final_position.x * final_position.y
+def answer(pos: Position) -> int:
+    return pos.x * pos.y
 
 
 def main() -> int:
     lines = read_file("input.txt")
     instructions = list(map(parse_line, lines))
-    p1 = part_1(instructions)
-    print(f"Part 1: {p1}")
+
+    p1 = answer(eval(eval_instruction_p1, instructions))
+    print(f"Part One: {p1}")
+
+    p2 = answer(eval(eval_instruction_p2, instructions))
+    print(f"Part Two: {p2}")
+
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())  # next section explains the use of sys.exit
+    sys.exit(main())
